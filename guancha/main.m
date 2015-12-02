@@ -8,11 +8,12 @@
 
 #import <Foundation/Foundation.h>
 
-#define URL [NSURL URLWithString:@"http://www.guancha.cn"]
+#define HOST @"http://www.guancha.cn"
 
-NSXMLDocument *document;
-NSXMLNode *bodyNode;
-NSXMLNode *mainNode;
+NSXMLDocument *_document;
+NSXMLNode *_bodyNode;
+NSXMLNode *_mainNode;
+NSArray<NSXMLNode *> *_currentList;
 
 NSArray<NSXMLNode *> *findChildWithTag(NSString *tagName, NSXMLNode *inXMLNode)
 {
@@ -39,32 +40,20 @@ NSXMLNode *findChildWithAttribute(NSString *attributeName, NSString *attributeVa
     
     for (NSXMLNode *node in inXMLNode.children) {
         NSXMLElement *element = [[NSXMLElement alloc] initWithXMLString:node.XMLString error:NULL];
-        for (NSXMLNode *attr in element.attributes) {
-            if ([attr.name isEqualToString:attributeName]) {
-                BOOL match = NO;
-                if (!allowPartial && [attr.stringValue isEqualToString:attributeValue])
-                    match = YES;
-                else if (allowPartial && [attr.stringValue containsString:attributeValue])
-                    match = YES;
-                if (match)
-                    return node;
-            }
-        }
+        NSXMLNode *attr = [element attributeForName:attributeName];
+        BOOL match = NO;
+        if (!allowPartial && [attr.stringValue isEqualToString:attributeValue])
+            match = YES;
+        else if (allowPartial && [attr.stringValue containsString:attributeValue])
+            match = YES;
+        if (match)
+            return node;
         
         NSXMLNode *cNode = findChildWithAttribute(attributeName, attributeValue, node, allowPartial);
         if (cNode != nil)
             return cNode;
     }
     return nil;
-}
-
-void list(NSString *class, NSString *tag)
-{
-    NSXMLNode *theNode = findChildWithAttribute(@"class", class, mainNode, YES);
-    NSArray *titleNodes = findChildWithTag(tag, theNode);
-    for (NSXMLNode *titleNode in titleNodes) {
-        printf("%s\n", titleNode.stringValue.UTF8String);
-    }
 }
 
 void showStruct(NSXMLNode *node)
@@ -76,6 +65,44 @@ void showStruct(NSXMLNode *node)
     for (NSXMLNode *childNode in node.children) {
         showStruct(childNode);
     }
+}
+
+int load(NSURL *url)
+{
+    NSError *error = nil;
+    _document = [[NSXMLDocument alloc] initWithContentsOfURL:url?:[NSURL URLWithString:HOST] options:NSXMLDocumentTidyHTML error:&error];
+    if (!_document && error) {
+        printf("error:\n%s\n", error.localizedDescription.UTF8String);
+        return EXIT_FAILURE;
+    }
+    _bodyNode = findChildWithTag(@"body", _document)[0];
+    _mainNode = findChildWithAttribute(@"class", @"main-contain", _bodyNode, YES);
+    return EXIT_SUCCESS;
+}
+
+void view(int index)
+{
+    NSXMLNode *node = _currentList[index];
+    NSXMLElement *element = [[NSXMLElement alloc] initWithXMLString:[node childAtIndex:0].XMLString error:NULL];
+    NSXMLNode *hrefAttr = [element attributeForName:@"href"];
+    NSString *urlString = hrefAttr.stringValue;
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", HOST, urlString]];
+    load(url);
+}
+
+void list(NSString *class, NSString *tag)
+{
+    NSXMLNode *theNode = findChildWithAttribute(@"class", class, _mainNode, YES);
+    _currentList = findChildWithTag(tag, theNode);
+    for (int i = 0; i < _currentList.count; i++) {
+        NSXMLNode *titleNode = _currentList[i];
+        printf("%d %s\n", i, titleNode.stringValue.UTF8String);
+    }
+}
+
+void extractOperationAndArg(char *line, char *operation, char *arg)
+{
+    
 }
 
 void waitingForInput()
@@ -91,10 +118,13 @@ void waitingForInput()
             list(@"page-2nd-column", @"h5");
         } else if (strcmp(line, "list3\n") == 0) {
             list(@"right-side01", @"h4");
+        } else if (strstr(line, "view") != NULL) {
+            int index = 0;
+            view(index);
         } else if (strcmp(line, "q") == 0) {
             break;
         } else {
-            showStruct(document);
+            showStruct(_document);
         }
     }
     if (line)
@@ -103,14 +133,9 @@ void waitingForInput()
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        NSError *error = nil;
-        document = [[NSXMLDocument alloc] initWithContentsOfURL:URL options:NSXMLDocumentTidyHTML error:&error];
-        if (!document && error) {
-            printf("error:\n%s\n", error.localizedDescription.UTF8String);
+        if (load(nil) == EXIT_FAILURE) {
             return EXIT_FAILURE;
         }
-        bodyNode = findChildWithTag(@"body", document)[0];
-        mainNode = findChildWithAttribute(@"class", @"main-contain", bodyNode, YES);
         
         printf("usage:\n");
         waitingForInput();
