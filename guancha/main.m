@@ -76,7 +76,11 @@ int load(NSURL *url)
         return EXIT_FAILURE;
     }
     _bodyNode = findChildWithTag(@"body", _document)[0];
-    _mainNode = findChildWithAttribute(@"class", @"main-contain", _bodyNode, YES);
+    if (!url) {
+        _mainNode = findChildWithAttribute(@"class", @"main-contain", _bodyNode, YES);
+    } else {
+        _mainNode = findChildWithAttribute(@"class", @"all-txt", _bodyNode, YES);
+    }
     return EXIT_SUCCESS;
 }
 
@@ -86,8 +90,10 @@ void view(int index)
     NSXMLElement *element = [[NSXMLElement alloc] initWithXMLString:[node childAtIndex:0].XMLString error:NULL];
     NSXMLNode *hrefAttr = [element attributeForName:@"href"];
     NSString *urlString = hrefAttr.stringValue;
-    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", HOST, urlString]];
+    NSString *allTextUrl = [NSString stringWithFormat:@"%@_s.shtml", [urlString substringToIndex:(urlString.length - @".shtml".length)]];
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", HOST, allTextUrl]];
     load(url);
+    printf("%s\n", _mainNode.stringValue.UTF8String);
 }
 
 void list(NSString *class, NSString *tag)
@@ -100,9 +106,12 @@ void list(NSString *class, NSString *tag)
     }
 }
 
-void extractOperationAndArg(char *line, char *operation, char *arg)
+void extractOperationAndArg(char *line, NSString **operation, NSString **arg)
 {
-    
+    NSString *sline = [NSString stringWithUTF8String:line];
+    NSArray *arr = [sline componentsSeparatedByString:@" "];
+    *operation = arr[0];
+    *arg = arr[1];
 }
 
 void waitingForInput()
@@ -119,7 +128,10 @@ void waitingForInput()
         } else if (strcmp(line, "list3\n") == 0) {
             list(@"right-side01", @"h4");
         } else if (strstr(line, "view") != NULL) {
-            int index = 0;
+            NSString *operation;
+            NSString *arg;
+            extractOperationAndArg(line, &operation, &arg);
+            int index = [arg intValue];
             view(index);
         } else if (strcmp(line, "q") == 0) {
             break;
