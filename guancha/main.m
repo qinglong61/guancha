@@ -149,7 +149,7 @@ int main(int argc, const char * argv[]) {
             return EXIT_FAILURE;
         }
         
-        printf("usage:\n");
+        printf("用法:\nlist1        显示左侧列表\nlist2        显示中间列表\nlist3        显示右侧列表\nview 序号    显示文章内容");
         waitingForInput();
     }
 }
