@@ -114,6 +114,11 @@ void extractOperationAndArg(char *line, NSString **operation, NSString **arg)
     *arg = arr[1];
 }
 
+void showUsage()
+{
+    printf("用法:\nlist1        显示左侧列表\nlist2        显示中间列表\nlist3        显示右侧列表\nview 序号    显示文章内容\n");
+}
+
 void waitingForInput()
 {
     char *line = NULL;
@@ -133,10 +138,10 @@ void waitingForInput()
             extractOperationAndArg(line, &operation, &arg);
             int index = [arg intValue];
             view(index);
-        } else if (strcmp(line, "q") == 0) {
+        } else if (strcmp(line, "q\n") == 0) {
             break;
         } else {
-            showStruct(_document);
+            showUsage();
         }
     }
     if (line)
@@ -148,8 +153,7 @@ int main(int argc, const char * argv[]) {
         if (load(nil) == EXIT_FAILURE) {
             return EXIT_FAILURE;
         }
-        
-        printf("用法:\nlist1        显示左侧列表\nlist2        显示中间列表\nlist3        显示右侧列表\nview 序号    显示文章内容");
+        showUsage();
         waitingForInput();
     }
 }
