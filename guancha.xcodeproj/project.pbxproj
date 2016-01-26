@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D819D55F1C0D42A0009FAA7F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = D819D55E1C0D42A0009FAA7F /* main.m */; };
+		D8DA36711C57579F0042BB10 /* libcurses.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D8DA36701C57579F0042BB10 /* libcurses.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +26,7 @@
 /* Begin PBXFileReference section */
 		D819D55B1C0D42A0009FAA7F /* guancha */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = guancha; sourceTree = BUILT_PRODUCTS_DIR; };
 		D819D55E1C0D42A0009FAA7F /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		D8DA36701C57579F0042BB10 /* libcurses.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurses.tbd; path = usr/lib/libcurses.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +34,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8DA36711C57579F0042BB10 /* libcurses.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -41,6 +44,7 @@
 		D819D5521C0D42A0009FAA7F = {
 			isa = PBXGroup;
 			children = (
+				D8DA36701C57579F0042BB10 /* libcurses.tbd */,
 				D819D55D1C0D42A0009FAA7F /* guancha */,
 				D819D55C1C0D42A0009FAA7F /* Products */,
 			);
@@ -237,6 +241,7 @@
 				D819D5641C0D42A0009FAA7F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

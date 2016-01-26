@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <curses.h>
 
 #define HOST @"http://www.guancha.cn"
 
@@ -84,6 +85,31 @@ int load(NSURL *url)
     return EXIT_SUCCESS;
 }
 
+void newView(const char *content)
+{
+    initscr(); /*初始化屏幕*/
+    box(stdscr, ACS_VLINE, ACS_HLINE); /*画一个框*/
+    waddstr(stdscr, "按q键返回\n\n");
+    move(LINES/2, COLS/2); /*移动光标到屏幕中心*/
+    if (start_color() == OK) /*开启颜色*/
+    {
+        init_pair(1, COLOR_WHITE, COLOR_BLACK); /*建立一个颜色对*/
+        attron(COLOR_PAIR(1)); /*开启字符输出颜色*/
+        waddstr(stdscr, content); /*输出字符到标准屏幕上*/
+        attroff(COLOR_PAIR(1)); /*关闭颜色显示*/
+    }
+    else
+    {
+        waddstr(stdscr, content);
+    }
+    waddstr(stdscr, "\n\n按q返回");
+    refresh(); /*把逻辑屏幕的改动在物理屏幕上显示出来*/
+    while (getch() != 'q') {
+        /*让程序停在当前屏幕直到输入q*/
+    }
+    endwin(); /*关闭curses状态,恢复到原来的屏幕*/
+}
+
 void view(int index)
 {
     NSXMLNode *node = _currentList[index];
@@ -93,7 +119,8 @@ void view(int index)
     NSString *allTextUrl = [NSString stringWithFormat:@"%@_s.shtml", [urlString substringToIndex:(urlString.length - @".shtml".length)]];
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", HOST, allTextUrl]];
     load(url);
-    printf("%s\n", _mainNode.stringValue.UTF8String);
+    
+    newView(_mainNode.stringValue.UTF8String);
 }
 
 void list(NSString *class, NSString *tag)
