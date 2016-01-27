@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <curses.h>
+#import <locale.h>
 
 #define HOST @"http://www.guancha.cn"
 
@@ -87,10 +88,12 @@ int load(NSURL *url)
 
 void newView(const char *content)
 {
+    setlocale(LC_ALL,"");
     initscr(); /*初始化屏幕*/
-    box(stdscr, ACS_VLINE, ACS_HLINE); /*画一个框*/
+    keypad(stdscr, TRUE);
+    scrollok(stdscr, TRUE);
+    setscrreg(0, LINES);
     waddstr(stdscr, "按q键返回\n\n");
-    move(LINES/2, COLS/2); /*移动光标到屏幕中心*/
     if (start_color() == OK) /*开启颜色*/
     {
         init_pair(1, COLOR_WHITE, COLOR_BLACK); /*建立一个颜色对*/
@@ -104,8 +107,13 @@ void newView(const char *content)
     }
     waddstr(stdscr, "\n\n按q返回");
     refresh(); /*把逻辑屏幕的改动在物理屏幕上显示出来*/
-    while (getch() != 'q') {
-        /*让程序停在当前屏幕直到输入q*/
+    int c = 0;
+    while (c != 'q') { /*让程序停在当前屏幕直到输入q*/
+        c = getch();
+//        if (c == KEY_UP) {
+//            wscrl(stdscr, 1);
+//        }
+//        ungetch(0);
     }
     endwin(); /*关闭curses状态,恢复到原来的屏幕*/
 }
@@ -182,5 +190,6 @@ int main(int argc, const char * argv[]) {
         }
         showUsage();
         waitingForInput();
+//        newView("测试");
     }
 }
