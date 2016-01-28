@@ -90,31 +90,63 @@ void newView(const char *content)
 {
     setlocale(LC_ALL,"");
     initscr(); /*初始化屏幕*/
-    keypad(stdscr, TRUE);
-    scrollok(stdscr, TRUE);
-    setscrreg(0, LINES);
-    waddstr(stdscr, "按q键返回\n\n");
+    //完成initscr后，输入模式为预处理模式，（1）所有处理是基于行的，就是说，只有按下回车，输入数据才被传给程序；（2）键盘特殊字符启用，按下合适组合键会产生信号
+    cbreak(); /*设置cbreak模式，字符一键入，直接传给程序*/
+    noecho(); /*让输入不会显示在屏幕上*/
+    nonl();
+//    curs_set(0); /*隐藏光标*/
+    clear();
+    
+    WINDOW *win = newwin(LINES-3, COLS-4, 2, 2);
+    wborder(win, 1, 1, 1, 1, 1, 1, 1, 1);
+    keypad(win, TRUE); /*开启后可以处理‘\’转义字符开头的逻辑键*/
+    
+    init_pair(0, COLOR_GREEN, COLOR_WHITE);
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    wbkgd(win,0);
+    bkgd(1);
+    
+    scrollok(win, TRUE);
+    box(stdscr, ACS_VLINE, ACS_HLINE);
+    refresh();
+
+//    setscrreg(0, LINES);
+    mvwaddstr(stdscr, 1, 1, "按q键返回");
     if (start_color() == OK) /*开启颜色*/
     {
-        init_pair(1, COLOR_WHITE, COLOR_BLACK); /*建立一个颜色对*/
+        init_pair(1, COLOR_WHITE, COLOR_BLUE); /*建立一个颜色对*/
         attron(COLOR_PAIR(1)); /*开启字符输出颜色*/
-        waddstr(stdscr, content); /*输出字符到标准屏幕上*/
+        waddstr(win, content); /*输出字符到标准屏幕上*/
         attroff(COLOR_PAIR(1)); /*关闭颜色显示*/
     }
     else
     {
-        waddstr(stdscr, content);
+        waddstr(win, content);
     }
-    waddstr(stdscr, "\n\n按q返回");
-    refresh(); /*把逻辑屏幕的改动在物理屏幕上显示出来*/
-    int c = 0;
-    while (c != 'q') { /*让程序停在当前屏幕直到输入q*/
-        c = getch();
-//        if (c == KEY_UP) {
-//            wscrl(stdscr, 1);
-//        }
-//        ungetch(0);
-    }
+    wrefresh(win);
+    touchwin(win); /*转换当前窗口为win*/
+    wnoutrefresh(win);
+    int ch, x, y;
+    getyx(win, y, x); /*获得当前逻辑光标位置*/
+    do {
+        ch = getch();
+        waddch(win, ch);
+        switch(ch)
+        {
+            case KEY_UP:
+                --y;
+                wscrl(win, -1);
+                break;
+            case KEY_DOWN:
+                ++y;
+                wscrl(win, 1);
+//                scroll(win);
+                break;
+            default:
+                break;
+        }
+        wmove(win, y, x);
+    } while (ch != 'q');
     endwin(); /*关闭curses状态,恢复到原来的屏幕*/
 }
 
