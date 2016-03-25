@@ -10,7 +10,7 @@
 #import <curses.h>
 #import <locale.h>
 
-#define HOST @"http://www.guancha.cn"
+#pragma mark - parseHTML
 
 NSXMLDocument *_document;
 NSXMLNode *_bodyNode;
@@ -69,6 +69,10 @@ void showStruct(NSXMLNode *node)
     }
 }
 
+#pragma mark - load
+
+#define HOST @"http://www.guancha.cn"
+
 int load(NSURL *url)
 {
     NSError *error = nil;
@@ -84,6 +88,112 @@ int load(NSURL *url)
         _mainNode = findChildWithAttribute(@"class", @"all-txt", _bodyNode, YES);
     }
     return EXIT_SUCCESS;
+}
+
+#pragma mark - handle text
+
+#define TAB_WIDTH 4
+
+typedef struct
+{
+    int width;
+    int height;
+} SIZE;
+
+typedef struct
+{
+    char *str;
+} LINE;
+
+typedef struct
+{
+    LINE *text;
+    int nunberOfLines;
+} TEXT;
+
+void initLINE(LINE *l, char *str)
+{
+    l->str = (char *)malloc(strlen(str) * sizeof(char));
+    strcpy(l->str, str);
+}
+
+void resetStr(char *str)
+{
+    for (int i = 0; i < strlen(str); i++) {
+        str[i] = '\0';
+    }
+}
+
+void initTEXT(TEXT *t, const char *content, SIZE size)
+{
+    char *strInLine = (char *)malloc(size.width * sizeof(char));
+    int indexOfLine = 0;
+    int indexOfCharInLine = 0;
+    
+    for (int i = 0; i < strlen(content); i++) {
+        switch(content[i])
+        {
+            case '\n':
+                strInLine[indexOfCharInLine] = '\0';
+                indexOfCharInLine = 0;
+                LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
+                for (int l = 0; l < indexOfLine; l++) {
+                    tmp[l] = t->text[l];
+                }
+                initLINE(tmp + indexOfLine, strInLine);
+                printf("%lu", sizeof(t->text)/sizeof(LINE));
+                if (sizeof(t->text)/sizeof(LINE) > 0) {
+                    free(t->text);
+                }
+                t->text = tmp;
+//                strInLine = "";
+                resetStr(strInLine);
+                indexOfLine++;
+                break;
+            default:
+                if (indexOfCharInLine < size.width) {
+                    strInLine[indexOfCharInLine++] = content[i];
+                } else {
+                    strInLine[indexOfCharInLine] = '\0';
+                    indexOfCharInLine = 0;
+                    LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
+                    for (int l = 0; l < indexOfLine; l++) {
+                        tmp[l] = t->text[l];
+                    }
+                    initLINE(tmp + indexOfLine, strInLine);
+                    printf("%lu", sizeof(t->text)/sizeof(LINE));
+                    if (sizeof(t->text)/sizeof(LINE) > 0) {
+                        free(t->text);
+                    }
+                    t->text = tmp;
+//                    strInLine = "";
+                    resetStr(strInLine);
+                    indexOfLine++;
+                }
+                break;
+        }
+    }
+    t->nunberOfLines = indexOfLine;
+}
+
+void printTEXT(WINDOW *win, const TEXT *t, int start, int end)
+{
+    int indexOfLineInTEXT, indexOfLineInWin;
+    for(indexOfLineInTEXT = start, indexOfLineInWin = 0; indexOfLineInTEXT < end; indexOfLineInTEXT++, indexOfLineInWin++)
+    {
+        wmove(win, indexOfLineInWin, 0);
+        wclrtoeol(win);
+        
+        if (start_color() == OK) { /*开启颜色*/
+            init_pair(1, COLOR_WHITE, COLOR_BLUE); /*建立一个颜色对*/
+            wattron(win, COLOR_PAIR(1)); /*开启字符输出颜色*/
+            waddstr(win, t->text[indexOfLineInTEXT].str); /*输出字符到标准屏幕上*/
+            wattroff(win, COLOR_PAIR(1)); /*关闭颜色显示*/
+        } else {
+            waddstr(win, t->text[indexOfLineInTEXT].str);
+        }
+    }
+    wrefresh(win);
 }
 
 void newView(const char *content)
@@ -109,46 +219,53 @@ void newView(const char *content)
     scrollok(win, TRUE);
     box(stdscr, ACS_VLINE, ACS_HLINE);
     refresh();
+    
+    TEXT text;
+    initTEXT(&text, content, (SIZE){25, 100});
+    int numberOfLinesCanShow = 25;
+    int firstLineY = 1;
+    int indexOfWin1stLineInTEXT = 0;
 
 //    setscrreg(0, LINES);
-    mvwaddstr(stdscr, 1, 1, "按q键返回");
-    if (start_color() == OK) /*开启颜色*/
-    {
-        init_pair(1, COLOR_WHITE, COLOR_BLUE); /*建立一个颜色对*/
-        attron(COLOR_PAIR(1)); /*开启字符输出颜色*/
-        waddstr(win, content); /*输出字符到标准屏幕上*/
-        attroff(COLOR_PAIR(1)); /*关闭颜色显示*/
-    }
-    else
-    {
-        waddstr(win, content);
-    }
-    wrefresh(win);
+//    mvwaddstr(stdscr, 1, 1, "按q键返回");
+    
+    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
+
     touchwin(win); /*转换当前窗口为win*/
     wnoutrefresh(win);
     int ch, x, y;
     getyx(win, y, x); /*获得当前逻辑光标位置*/
     do {
         ch = getch();
-        waddch(win, ch);
+//        waddch(win, ch);
         switch(ch)
         {
-            case KEY_UP:
-                --y;
-                wscrl(win, -1);
+            case 65:
+                if (y > firstLineY) {
+                    y--;
+                } else if (indexOfWin1stLineInTEXT > 0) {
+                    indexOfWin1stLineInTEXT--;
+                    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
+                }
                 break;
-            case KEY_DOWN:
-                ++y;
-                wscrl(win, 1);
-//                scroll(win);
+            case 66:
+                if (y < firstLineY + numberOfLinesCanShow - 1) {
+                    y++;
+                } else if (indexOfWin1stLineInTEXT < text.nunberOfLines-1) {
+                    indexOfWin1stLineInTEXT++;
+                    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
+                }
                 break;
             default:
                 break;
         }
         wmove(win, y, x);
+        wrefresh(win);
     } while (ch != 'q');
     endwin(); /*关闭curses状态,恢复到原来的屏幕*/
 }
+
+#pragma mark - control
 
 void view(int index)
 {
@@ -160,7 +277,13 @@ void view(int index)
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", HOST, allTextUrl]];
     load(url);
     
-    newView(_mainNode.stringValue.UTF8String);
+//    newView(_mainNode.stringValue.UTF8String);
+    
+    TEXT text;
+    initTEXT(&text, _mainNode.stringValue.UTF8String, (SIZE){25, 100});
+    int numberOfLinesCanShow = 25;
+    int indexOfWin1stLineInTEXT = 0;
+    printTEXT(stdscr, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
 }
 
 void list(NSString *class, NSString *tag)
@@ -222,6 +345,8 @@ int main(int argc, const char * argv[]) {
         }
         showUsage();
         waitingForInput();
-//        newView("测试");
+        
+//        list(@"page-1st-column", @"h4");
+//        view(1);
     }
 }
