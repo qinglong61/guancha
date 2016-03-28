@@ -117,63 +117,45 @@ void initLINE(LINE *l, char *str)
     strcpy(l->str, str);
 }
 
-void resetStr(char *str)
-{
-    for (int i = 0; i < strlen(str); i++) {
-        str[i] = '\0';
-    }
-}
-
 void initTEXT(TEXT *t, const char *content, SIZE size)
 {
-    char *strInLine = (char *)malloc(size.width * sizeof(char));
+    NSString *contentStr = [NSString stringWithUTF8String:content];
+    NSMutableString *strInLine = [[NSMutableString alloc] init];
     int indexOfLine = 0;
-    int indexOfCharInLine = 0;
     
-    for (int i = 0; i < strlen(content); i++) {
-        switch(content[i])
-        {
-            case '\n':
-                strInLine[indexOfCharInLine] = '\0';
-                indexOfCharInLine = 0;
-                LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
-                for (int l = 0; l < indexOfLine; l++) {
-                    tmp[l] = t->text[l];
-                }
-                initLINE(tmp + indexOfLine, strInLine);
-                printf("%lu", sizeof(t->text)/sizeof(LINE));
-                if (sizeof(t->text)/sizeof(LINE) > 0) {
-                    free(t->text);
-                }
-                t->text = tmp;
-//                strInLine = "";
-                resetStr(strInLine);
-                indexOfLine++;
-                break;
-            default:
-                if (indexOfCharInLine < size.width) {
-                    strInLine[indexOfCharInLine++] = content[i];
-                } else {
-                    strInLine[indexOfCharInLine] = '\0';
-                    indexOfCharInLine = 0;
-                    LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
-                    for (int l = 0; l < indexOfLine; l++) {
-                        tmp[l] = t->text[l];
-                    }
-                    initLINE(tmp + indexOfLine, strInLine);
-                    printf("%lu", sizeof(t->text)/sizeof(LINE));
-                    if (sizeof(t->text)/sizeof(LINE) > 0) {
-                        free(t->text);
-                    }
-                    t->text = tmp;
-//                    strInLine = "";
-                    resetStr(strInLine);
-                    indexOfLine++;
-                }
-                break;
+    for (int i = 0; i < contentStr.length; i++) {
+        NSString *strAtIndex = [contentStr substringWithRange:NSMakeRange(i, 1)];
+        if ([strAtIndex isEqualToString:@"\n"]) {
+            LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
+            for (int l = 0; l < indexOfLine; l++) {
+                tmp[l] = t->text[l];
+            }
+            initLINE(tmp + indexOfLine, (char *)[strInLine UTF8String]);
+            if (t->nunberOfLines > 0) {
+                free(t->text);
+            }
+            t->text = tmp;
+            [strInLine setString:@""];
+            indexOfLine++;
+            t->nunberOfLines = indexOfLine;
+        } else if (strInLine.length < size.width) {
+            [strInLine appendString:strAtIndex];
+        } else {
+            LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
+            for (int l = 0; l < indexOfLine; l++) {
+                tmp[l] = t->text[l];
+            }
+            initLINE(tmp + indexOfLine, (char *)[strInLine UTF8String]);
+            if (t->nunberOfLines > 0) {
+                free(t->text);
+            }
+            t->text = tmp;
+            [strInLine setString:@""];
+            indexOfLine++;
+            t->nunberOfLines = indexOfLine;
+            [strInLine appendString:strAtIndex];
         }
     }
-    t->nunberOfLines = indexOfLine;
 }
 
 void printTEXT(WINDOW *win, const TEXT *t, int start, int end)
@@ -221,13 +203,13 @@ void newView(const char *content)
     refresh();
     
     TEXT text;
-    initTEXT(&text, content, (SIZE){25, 100});
-    int numberOfLinesCanShow = 25;
-    int firstLineY = 1;
+    initTEXT(&text, content, (SIZE){25, 22});
+    int numberOfLinesCanShow = 22;
+    int firstLineY = 0;
     int indexOfWin1stLineInTEXT = 0;
 
 //    setscrreg(0, LINES);
-//    mvwaddstr(stdscr, 1, 1, "按q键返回");
+    mvwaddstr(stdscr, 1, 1, "按q键返回");
     
     printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
 
@@ -277,13 +259,13 @@ void view(int index)
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@%@", HOST, allTextUrl]];
     load(url);
     
-//    newView(_mainNode.stringValue.UTF8String);
+    newView(_mainNode.stringValue.UTF8String);
     
-    TEXT text;
-    initTEXT(&text, _mainNode.stringValue.UTF8String, (SIZE){25, 100});
-    int numberOfLinesCanShow = 25;
-    int indexOfWin1stLineInTEXT = 0;
-    printTEXT(stdscr, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
+//    TEXT text;
+//    initTEXT(&text, _mainNode.stringValue.UTF8String, (SIZE){25, 22});
+//    for(int i = 0; i < text.nunberOfLines; i++) {
+//        printf("%s\n", text.text[i].str);
+//    }
 }
 
 void list(NSString *class, NSString *tag)
