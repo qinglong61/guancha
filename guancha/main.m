@@ -131,43 +131,45 @@ void initTEXT(TEXT *t, const char *content, SIZE size)
                 tmp[l] = t->text[l];
             }
             initLINE(tmp + indexOfLine, (char *)[strInLine UTF8String]);
-            if (t->nunberOfLines > 0) {
+            if (indexOfLine > 0) {
                 free(t->text);
             }
             t->text = tmp;
             [strInLine setString:@""];
             indexOfLine++;
-            t->nunberOfLines = indexOfLine;
-        } else if (strInLine.length < size.width) {
-            [strInLine appendString:strAtIndex];
-        } else {
+            [strInLine appendString:@"    "];
+        } else if (strInLine.length >= size.width) {
             LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
             for (int l = 0; l < indexOfLine; l++) {
                 tmp[l] = t->text[l];
             }
             initLINE(tmp + indexOfLine, (char *)[strInLine UTF8String]);
-            if (t->nunberOfLines > 0) {
+            if (indexOfLine > 0) {
                 free(t->text);
             }
             t->text = tmp;
             [strInLine setString:@""];
             indexOfLine++;
-            t->nunberOfLines = indexOfLine;
+            [strInLine appendString:strAtIndex];
+        } else {
+            if (i == 0) {
+                [strInLine appendString:@"    "];
+            }
             [strInLine appendString:strAtIndex];
         }
     }
+    t->nunberOfLines = indexOfLine;
 }
 
 void printTEXT(WINDOW *win, const TEXT *t, int start, int end)
 {
     int indexOfLineInTEXT, indexOfLineInWin;
-    for(indexOfLineInTEXT = start, indexOfLineInWin = 0; indexOfLineInTEXT < end; indexOfLineInTEXT++, indexOfLineInWin++)
+    for(indexOfLineInTEXT = start, indexOfLineInWin = 0; indexOfLineInTEXT <= end; indexOfLineInTEXT++, indexOfLineInWin++)
     {
         wmove(win, indexOfLineInWin, 0);
         wclrtoeol(win);
-        
         if (start_color() == OK) { /*开启颜色*/
-            init_pair(1, COLOR_WHITE, COLOR_BLUE); /*建立一个颜色对*/
+            init_pair(1, COLOR_GREEN, COLOR_BLACK); /*建立一个颜色对*/
             wattron(win, COLOR_PAIR(1)); /*开启字符输出颜色*/
             waddstr(win, t->text[indexOfLineInTEXT].str); /*输出字符到标准屏幕上*/
             wattroff(win, COLOR_PAIR(1)); /*关闭颜色显示*/
@@ -175,6 +177,7 @@ void printTEXT(WINDOW *win, const TEXT *t, int start, int end)
             waddstr(win, t->text[indexOfLineInTEXT].str);
         }
     }
+    wmove(win, indexOfLineInWin-1, 0);
     wrefresh(win);
 }
 
@@ -189,7 +192,7 @@ void newView(const char *content)
 //    curs_set(0); /*隐藏光标*/
     clear();
     
-    WINDOW *win = newwin(LINES-3, COLS-4, 2, 2);
+    WINDOW *win = newwin(LINES-2, COLS-2, 1, 1);
     wborder(win, 1, 1, 1, 1, 1, 1, 1, 1);
     keypad(win, TRUE); /*开启后可以处理‘\’转义字符开头的逻辑键*/
     
@@ -203,15 +206,15 @@ void newView(const char *content)
     refresh();
     
     TEXT text;
-    initTEXT(&text, content, (SIZE){25, 22});
-    int numberOfLinesCanShow = 22;
+    initTEXT(&text, content, (SIZE){COLS/2-1, LINES-2});
+    int numberOfLinesCanShow = LINES-3;
     int firstLineY = 0;
     int indexOfWin1stLineInTEXT = 0;
 
 //    setscrreg(0, LINES);
-    mvwaddstr(stdscr, 1, 1, "按q键返回");
+//    mvwaddstr(stdscr, 1, 1, "按q键返回");
     
-    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
+    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow - 1);
 
     touchwin(win); /*转换当前窗口为win*/
     wnoutrefresh(win);
@@ -227,15 +230,15 @@ void newView(const char *content)
                     y--;
                 } else if (indexOfWin1stLineInTEXT > 0) {
                     indexOfWin1stLineInTEXT--;
-                    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
+                    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow - 1);
                 }
                 break;
             case 66:
                 if (y < firstLineY + numberOfLinesCanShow - 1) {
                     y++;
-                } else if (indexOfWin1stLineInTEXT < text.nunberOfLines-1) {
+                } else if (indexOfWin1stLineInTEXT + numberOfLinesCanShow - 1 < text.nunberOfLines - 1) {
                     indexOfWin1stLineInTEXT++;
-                    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow-1);
+                    printTEXT(win, &text, indexOfWin1stLineInTEXT, indexOfWin1stLineInTEXT + numberOfLinesCanShow - 1);
                 }
                 break;
             default:
@@ -260,12 +263,6 @@ void view(int index)
     load(url);
     
     newView(_mainNode.stringValue.UTF8String);
-    
-//    TEXT text;
-//    initTEXT(&text, _mainNode.stringValue.UTF8String, (SIZE){25, 22});
-//    for(int i = 0; i < text.nunberOfLines; i++) {
-//        printf("%s\n", text.text[i].str);
-//    }
 }
 
 void list(NSString *class, NSString *tag)
@@ -327,8 +324,5 @@ int main(int argc, const char * argv[]) {
         }
         showUsage();
         waitingForInput();
-        
-//        list(@"page-1st-column", @"h4");
-//        view(1);
     }
 }
