@@ -126,18 +126,20 @@ void initTEXT(TEXT *t, const char *content, SIZE size)
     for (int i = 0; i < contentStr.length; i++) {
         NSString *strAtIndex = [contentStr substringWithRange:NSMakeRange(i, 1)];
         if ([strAtIndex isEqualToString:@"\n"]) {
-            LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
-            for (int l = 0; l < indexOfLine; l++) {
-                tmp[l] = t->text[l];
+            if (![[contentStr substringFromIndex:i] isEqualToString:@"\n"] && ![[contentStr substringFromIndex:i] isEqualToString:@"\n\n"]) {
+                LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
+                for (int l = 0; l < indexOfLine; l++) {
+                    tmp[l] = t->text[l];
+                }
+                initLINE(tmp + indexOfLine, (char *)[strInLine UTF8String]);
+                if (indexOfLine > 0) {
+                    free(t->text);
+                }
+                t->text = tmp;
+                [strInLine setString:@""];
+                indexOfLine++;
+                [strInLine appendString:@"    "];
             }
-            initLINE(tmp + indexOfLine, (char *)[strInLine UTF8String]);
-            if (indexOfLine > 0) {
-                free(t->text);
-            }
-            t->text = tmp;
-            [strInLine setString:@""];
-            indexOfLine++;
-            [strInLine appendString:@"    "];
         } else if (strInLine.length >= size.width) {
             LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
             for (int l = 0; l < indexOfLine; l++) {
@@ -158,13 +160,26 @@ void initTEXT(TEXT *t, const char *content, SIZE size)
             [strInLine appendString:strAtIndex];
         }
     }
-    t->nunberOfLines = indexOfLine;
+    if (strInLine.length > 0) {
+        LINE *tmp = (LINE *)malloc((indexOfLine + 1) * sizeof(LINE));
+        for (int l = 0; l < indexOfLine; l++) {
+            tmp[l] = t->text[l];
+        }
+        initLINE(tmp + indexOfLine, (char *)[strInLine UTF8String]);
+        if (indexOfLine > 0) {
+            free(t->text);
+        }
+        t->text = tmp;
+        t->nunberOfLines = indexOfLine + 1;
+    } else {
+        t->nunberOfLines = indexOfLine;
+    }
 }
 
 void printTEXT(WINDOW *win, const TEXT *t, int start, int end)
 {
     int indexOfLineInTEXT, indexOfLineInWin;
-    for(indexOfLineInTEXT = start, indexOfLineInWin = 0; indexOfLineInTEXT <= end; indexOfLineInTEXT++, indexOfLineInWin++)
+    for(indexOfLineInTEXT = start, indexOfLineInWin = 0; indexOfLineInTEXT <= end && indexOfLineInTEXT < t->nunberOfLines; indexOfLineInTEXT++, indexOfLineInWin++)
     {
         wmove(win, indexOfLineInWin, 0);
         wclrtoeol(win);
@@ -263,6 +278,13 @@ void view(int index)
     load(url);
     
     newView(_mainNode.stringValue.UTF8String);
+    
+//    TEXT text;
+//    initTEXT(&text, _mainNode.stringValue.UTF8String, (SIZE){39, 22});
+//    for(int indexOfLineInTEXT = 0, indexOfLineInWin = 0; indexOfLineInTEXT <= 20 && indexOfLineInTEXT < text.nunberOfLines; indexOfLineInTEXT++, indexOfLineInWin++)
+//    {
+//        printf("%s\n", text.text[indexOfLineInTEXT].str);
+//    }
 }
 
 void list(NSString *class, NSString *tag)
